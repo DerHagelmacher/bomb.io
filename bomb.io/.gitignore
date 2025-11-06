@@ -1,0 +1,54 @@
+# ========================
+# 🔧 Node.js allgemein
+# ========================
+node_modules/
+dist/
+build/
+.cache/
+.tmp/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+
+# ========================
+# 🧱 Projektstruktur
+# ========================
+# Server-Output
+server/dist/
+server/node_modules/
+server/.env
+server/*.log
+
+# Client-Output
+client/dist/
+client/node_modules/
+client/.env
+client/.vite/
+client/.eslintcache
+
+# ========================
+# 🗂️ Betriebssystem / IDE
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# ========================
+# 🔒 Umgebungsvariablen
+# ========================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# ========================
+# 🧪 Tests / Reports
+# =======================
