@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { socket } from "./socket";
 
 type PlayerDTO = { id: string; nickname: string; ready: boolean };
@@ -16,13 +16,25 @@ type MatchState = {
   remainingMs: number;
   players: MatchPlayer[];
 };
-const MOVE_SPEED = 0.25; // Pixel pro Millisekunde
+
+const MOVE_SPEED = 0.35; // gerne anpassen
+
 export default function App() {
   const [nickname, setNickname] = useState("");
   const [lobbyId, setLobbyId] = useState("");
   const [lobby, setLobby] = useState<LobbyDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [matchState, setMatchState] = useState<MatchState | null>(null);
+
+
+  // Refs fuer Bewegung
+  const pressedKeysRef = useRef<Set<string>>(new Set());
+  const lobbyIdRef = useRef<string | null>(null);
+  // immer aktuelle LobbyId im Ref halten (fuer Bewegung)
+  useEffect(() => {
+    lobbyIdRef.current = lobby?.id ?? null;
+  }, [lobby?.id]);
+
 
   useEffect(() => {
     const onConnect = () => console.log("Verbunden:", socket.id);
@@ -77,10 +89,14 @@ export default function App() {
 
     // Pfeiltasten fuer kontinuierliche Bewegung (mit Diagonalen)
   useEffect(() => {
-    if (!inMatch || !matchState) return;
+    if (!inMatch) {
+      // wenn kein Match, alle Tasten loeschen
+      pressedKeysRef.current.clear();
+      return;
+    }
 
-    const keys = new Set<string>();
-    let lastTime = performance.now();
+    const keys = pressedKeysRef.current;
+    let lastTime = 0;
     let animId: number;
 
     function onKeyDown(e: KeyboardEvent) {
@@ -108,10 +124,12 @@ export default function App() {
     }
 
     function loop(now: number) {
+      if (!lastTime) lastTime = now;
       const dt = now - lastTime;
       lastTime = now;
 
-      if (keys.size > 0 && matchState) {
+      const lobbyId = lobbyIdRef.current;
+      if (lobbyId && keys.size > 0) {
         let vx = 0;
         let vy = 0;
 
@@ -120,7 +138,6 @@ export default function App() {
         if (keys.has("ArrowLeft")) vx -= 1;
         if (keys.has("ArrowRight")) vx += 1;
 
-        // normieren, damit diagonal nicht schneller ist
         const len = Math.hypot(vx, vy);
         if (len > 0) {
           vx /= len;
@@ -129,19 +146,13 @@ export default function App() {
           const dx = vx * MOVE_SPEED * dt;
           const dy = vy * MOVE_SPEED * dt;
 
-          socket.emit("player:move", {
-            lobbyId: matchState.lobbyId,
-            dx,
-            dy,
-          });
+          socket.emit("player:move", { lobbyId, dx, dy });
         }
       }
 
       animId = requestAnimationFrame(loop);
     }
 
-    // initial
-    lastTime = performance.now();
     animId = requestAnimationFrame(loop);
 
     window.addEventListener("keydown", onKeyDown);
@@ -151,9 +162,9 @@ export default function App() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       if (animId) cancelAnimationFrame(animId);
-      keys.clear();
     };
-  }, [inMatch, matchState]);
+  }, [inMatch]);
+
 
 
   function createLobby() {

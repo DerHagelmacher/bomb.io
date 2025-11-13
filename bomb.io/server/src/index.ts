@@ -105,7 +105,7 @@ io.on("connection", (socket) => {
   console.log("Neuer Client:", socket.id);
 
   socket.onAny((event, ...args) => {
-    console.log("[onAny]", socket.id, "event:", event, "data:", args);
+
   });
 
   // 1) Lobby erstellen
@@ -277,24 +277,23 @@ io.on("connection", (socket) => {
   // 6) Bewegung des Spielers
     // 6) Bewegung des Spielers (kontinuierlich, dx/dy vom Client)
   socket.on(
-    "player:move",
-    ({ lobbyId, dx, dy }: { lobbyId: string; dx: number; dy: number }) => {
-      const lobby = lobbies.get(lobbyId);
-      if (!lobby || !lobby.started) return;
-      const p = lobby.players[socket.id];
-      if (!p) return;
+  "player:move",
+  ({ lobbyId, dx, dy }: { lobbyId: string; dx: number; dy: number }) => {
+    const lobby = lobbies.get(lobbyId);
+    if (!lobby || !lobby.started) return;
+    const p = lobby.players[socket.id];
+    if (!p) return;
 
-      p.x += dx;
-      p.y += dy;
+    p.x += dx;
+    p.y += dy;
 
-      // Grenzen beachten
-      p.x = Math.max(0, Math.min(FIELD_WIDTH, p.x));
-      p.y = Math.max(0, Math.min(FIELD_HEIGHT, p.y));
+    p.x = Math.max(0, Math.min(FIELD_WIDTH, p.x));
+    p.y = Math.max(0, Math.min(FIELD_HEIGHT, p.y));
 
-      // aktuellen Stand an alle schicken
-      sendMatchState(io, lobby);
-    }
-  );
+    sendMatchState(io, lobby);
+  }
+);
+
 
 
   // 7) Disconnect

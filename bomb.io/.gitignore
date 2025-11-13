@@ -43,11 +43,11 @@ client/.eslintcache
 # ========================
 # 🔒 Umgebungsvariablen
 # ========================
-.env
-.env.local
-.env.development
-.env.production
-.env.test
+*.env
+*.env.local
+*.env.development
+*.env.production
+*.env.test
 
 # ========================
 # 🧪 Tests / Reports
