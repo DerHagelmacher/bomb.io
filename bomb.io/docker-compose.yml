@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  api:
+    build: ./server
+    container_name: bombio-server
+    ports:
+      - "3001:3001"
+    environment:
+      # wenn du spaeter CORS dynamisch machen willst:
+      # CLIENT_ORIGIN: "http://localhost"
+      NODE_ENV: production
+
+  client:
+    build: ./client
+    container_name: bombio-client
+    ports:
+      - "80:80"
+    depends_on:
+      - api

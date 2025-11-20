@@ -90,14 +90,15 @@ function cleanupLobbyIfEmpty(lobbyId: string) {
 
 /* ---------- Express + Socket.IO ---------- */
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));
+
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const server = http.createServer(app);
+app.use(cors({ origin: "*" }));
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173" },
+  cors: { origin: "*" },
 });
 
 /* ---------- Socket Events ---------- */
