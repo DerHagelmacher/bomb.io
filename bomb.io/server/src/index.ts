@@ -13,20 +13,30 @@ type Player = {
 };
 
 type Lobby = {
-  id: string;          // z.B. "A1B2C3"
-  ownerId: string;     // socket.id des Lobby-Owners
+  id: string;
+  ownerId: string;
   players: Record<string, Player>;
   maxPlayers: number;
   createdAt: number;
   started: boolean;
   endAt?: number;
+
+  // NEU:
+  bombHolderId?: string | null;
+  bombEndAt?: number;
 };
+
 
 /* ---------- Konstante Spielfeldwerte ---------- */
 const FIELD_WIDTH = 400;
 const FIELD_HEIGHT = 300;
-const MOVE_SPEED = 0.25; // optional, kann auf Client-Seite genutzt werden, hier aber nicht noetig
+const MOVE_SPEED = 0.25;
 const MATCH_DURATION_MS = 2 * 60 * 1000;
+
+// NEU:
+const BOMB_DURATION_MS = 15000; // 15 Sekunden pro Bombenrunde
+const BOMB_TOUCH_RADIUS = 20;   // Abstand in Weltkoordinaten fuer Uebergabe
+
 
 
 /* ---------- Speicher ---------- */
@@ -57,10 +67,18 @@ function lobbyToDTO(lobby: Lobby) {
     })),
   };
 }
-
 function sendMatchState(io: Server, lobby: Lobby) {
   if (!lobby.started || !lobby.endAt) return;
   const remainingMs = Math.max(0, lobby.endAt - Date.now());
+
+  const bomb =
+    lobby.bombHolderId && lobby.bombEndAt
+      ? {
+          holderId: lobby.bombHolderId,
+          remainingMs: Math.max(0, lobby.bombEndAt - Date.now()),
+        }
+      : undefined;
+
   io.to(lobby.id).emit("match:state", {
     lobbyId: lobby.id,
     remainingMs,
@@ -70,8 +88,30 @@ function sendMatchState(io: Server, lobby: Lobby) {
       x: p.x,
       y: p.y,
     })),
+    bomb, // <- NEU
   });
 }
+function tryTransferBomb(lobby: Lobby, moverId: string) {
+  if (!lobby.bombHolderId) return;
+  if (lobby.bombHolderId !== moverId) return;
+
+  const holder = lobby.players[moverId];
+  if (!holder) return;
+
+  const others = Object.values(lobby.players).filter((p) => p.id !== moverId);
+  for (const other of others) {
+    const dx = other.x - holder.x;
+    const dy = other.y - holder.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= BOMB_TOUCH_RADIUS) {
+      // Bombe uebergeben
+      lobby.bombHolderId = other.id;
+      lobby.bombEndAt = Date.now() + BOMB_DURATION_MS; // Timer reset
+      return;
+    }
+  }
+}
+
 
 function broadcastLobby(io: Server, lobbyId: string) {
   const lobby = lobbies.get(lobbyId);
@@ -227,6 +267,12 @@ io.on("connection", (socket) => {
     const playersArr = Object.values(lobby.players);
     const allReady =
       playersArr.length >= 2 && playersArr.every((p) => p.ready);
+          // Bombe zufaellig einem Spieler geben
+    const randomIndex = Math.floor(Math.random() * playersArr.length);
+    const bombOwner = playersArr[randomIndex];
+    lobby.bombHolderId = bombOwner.id;
+    lobby.bombEndAt = Date.now() + BOMB_DURATION_MS;
+
 
     if (!allReady) {
       return socket.emit(
@@ -262,25 +308,66 @@ io.on("connection", (socket) => {
 
     // neuer Timer: jede Sekunde Match-Status senden
     const interval = setInterval(() => {
-      const currentLobby = lobbies.get(lobby.id);
-      if (!currentLobby || !currentLobby.started || !currentLobby.endAt) {
-        clearInterval(interval);
-        lobbyIntervals.delete(lobby.id);
-        return;
-      }
-      const remaining = currentLobby.endAt - Date.now();
-      if (remaining <= 0) {
-        currentLobby.started = false;
-        sendMatchState(io, currentLobby);
-        io.to(currentLobby.id).emit("match:ended", {
-          lobbyId: currentLobby.id,
-        });
-        clearInterval(interval);
-        lobbyIntervals.delete(currentLobby.id);
-        return;
-      }
+  const currentLobby = lobbies.get(lobby.id);
+  if (!currentLobby || !currentLobby.started || !currentLobby.endAt) {
+    clearInterval(interval);
+    lobbyIntervals.delete(lobby.id);
+    return;
+  }
+
+  const now = Date.now();
+  const remaining = currentLobby.endAt - now;
+
+  // 1) Match-Zeit abgelaufen?
+  if (remaining <= 0) {
+    currentLobby.started = false;
+    sendMatchState(io, currentLobby);
+    io.to(currentLobby.id).emit("match:ended", {
+      lobbyId: currentLobby.id,
+      reason: "time",
+    });
+    clearInterval(interval);
+    lobbyIntervals.delete(currentLobby.id);
+    return;
+  }
+
+  // 2) Bomben-Timer abgelaufen?
+  if (currentLobby.bombHolderId && currentLobby.bombEndAt) {
+    const bombRemaining = currentLobby.bombEndAt - now;
+    if (bombRemaining <= 0) {
+      const loserId = currentLobby.bombHolderId;
+      const loser = currentLobby.players[loserId];
+
+      currentLobby.started = false;
+
+      // Letzten Stand schicken
       sendMatchState(io, currentLobby);
-    }, 1000);
+
+      // Explosion-Event schicken
+      io.to(currentLobby.id).emit("bomb:exploded", {
+        lobbyId: currentLobby.id,
+        loserId,
+        loserName: loser?.nickname ?? "Unbekannt",
+      });
+
+      // Match beenden
+      io.to(currentLobby.id).emit("match:ended", {
+        lobbyId: currentLobby.id,
+        reason: "bomb",
+        loserId,
+      });
+
+      clearInterval(interval);
+      lobbyIntervals.delete(currentLobby.id);
+      return;
+    }
+  }
+
+  // 3) Normale State-Updates
+  sendMatchState(io, currentLobby);
+}, 1000);
+
+
 
     lobbyIntervals.set(lobby.id, interval);
     // erste State Nachricht sofort
@@ -290,23 +377,28 @@ io.on("connection", (socket) => {
 
   // 6) Bewegung des Spielers
     // 6) Bewegung des Spielers (kontinuierlich, dx/dy vom Client)
-  socket.on(
-  "player:move",
-  ({ lobbyId, dx, dy }: { lobbyId: string; dx: number; dy: number }) => {
-    const lobby = lobbies.get(lobbyId);
-    if (!lobby || !lobby.started) return;
-    const p = lobby.players[socket.id];
-    if (!p) return;
+    socket.on(
+    "player:move",
+    ({ lobbyId, dx, dy }: { lobbyId: string; dx: number; dy: number }) => {
+      const lobby = lobbies.get(lobbyId);
+      if (!lobby || !lobby.started) return;
+      const p = lobby.players[socket.id];
+      if (!p) return;
 
-    p.x += dx;
-    p.y += dy;
+      p.x += dx;
+      p.y += dy;
 
-    p.x = Math.max(0, Math.min(FIELD_WIDTH, p.x));
-    p.y = Math.max(0, Math.min(FIELD_HEIGHT, p.y));
+      p.x = Math.max(0, Math.min(FIELD_WIDTH, p.x));
+      p.y = Math.max(0, Math.min(FIELD_HEIGHT, p.y));
 
-    sendMatchState(io, lobby);
-  }
-);
+      // NEU: pruefen, ob Bombe uebergeben werden soll
+      tryTransferBomb(lobby, socket.id);
+
+      // aktuellen Stand an alle schicken (inkl. Bombe)
+      sendMatchState(io, lobby);
+    }
+  );
+
 
 
 

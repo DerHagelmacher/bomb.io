@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { socket } from "./socket";
 
 type PlayerDTO = { id: string; nickname: string; ready: boolean };
@@ -15,9 +15,18 @@ type MatchState = {
   lobbyId: string;
   remainingMs: number;
   players: MatchPlayer[];
+  bomb?: {
+    holderId: string;
+    remainingMs: number;
+  };
 };
 
-const MOVE_SPEED = 0.35; // gerne anpassen
+
+const MOVE_SPEED = 0.35;
+
+// ⇩ HIER DIESE BEIDEN ZEILEN EINBAUEN ⇩
+const FIELD_WIDTH = 400;
+const FIELD_HEIGHT = 300;
 
 export default function App() {
   const [nickname, setNickname] = useState("");
@@ -49,16 +58,26 @@ export default function App() {
       console.log("match:started", data);
       // eigentlicher Zustand kommt dann mit match:state
     };
-
+    const onBombExploded = (data: { lobbyId: string; loserId: string; loserName: string }) => {
+      console.log("bomb:exploded", data);
+      // Extra Feedback, wer explodiert ist
+      alert(`💣 ${data.loserName} ist explodiert!`);
+    };
     const onMatchState = (state: MatchState) => {
       setMatchState(state);
     };
 
-    const onMatchEnded = ({ lobbyId }: { lobbyId: string }) => {
-      console.log("match:ended", lobbyId);
-      alert("Match zu Ende");
+    const onMatchEnded = (data: { lobbyId: string; reason?: string; loserId?: string }) => {
+      console.log("match:ended", data);
+      if (data.reason === "bomb") {
+        alert("Match zu Ende – die Bombe ist explodiert!");
+      } else {
+        alert("Match zu Ende (Zeit ist abgelaufen)");
+      }
       setMatchState(null);
     };
+    
+
 
     socket.on("connect", onConnect);
     socket.on("lobby:created", onLobbyCreated);
@@ -66,8 +85,8 @@ export default function App() {
     socket.on("lobby:error", onLobbyError);
     socket.on("match:started", onMatchStarted);
     socket.on("match:state", onMatchState);
+    socket.on("bomb:exploded", onBombExploded);
     socket.on("match:ended", onMatchEnded);
-
     return () => {
       socket.off("connect", onConnect);
       socket.off("lobby:created", onLobbyCreated);
@@ -75,6 +94,7 @@ export default function App() {
       socket.off("lobby:error", onLobbyError);
       socket.off("match:started", onMatchStarted);
       socket.off("match:state", onMatchState);
+      socket.off("bomb:exploded", onBombExploded);
       socket.off("match:ended", onMatchEnded);
     };
   }, []);
@@ -191,7 +211,15 @@ export default function App() {
   }
 
   return (
-    <div style={{ padding: 24, fontFamily: "Inter, system-ui", maxWidth: 640 }}>
+    <div style={{ 
+    width: "100vw", 
+    height: "100vh",
+    margin: 0,
+    padding: 0,
+    overflow: "hidden",
+    fontFamily: "Inter, system-ui"
+}}>
+
       <h1>Bomb.io – Lobby und Match</h1>
 
       {!inMatch && !lobby && (
@@ -263,46 +291,101 @@ export default function App() {
 
 /* ---------- einfache Spielfeld-Ansicht ---------- */
 function MatchView({ state }: { state: MatchState }) {
-  const width = 400;
-  const height = 300;
-
   const secondsLeft = Math.ceil(state.remainingMs / 1000);
 
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+
+  const scaleX = screenW / FIELD_WIDTH;
+  const scaleY = screenH / FIELD_HEIGHT;
+  const scale = Math.min(scaleX, scaleY);
+
+  const offsetX = (screenW - FIELD_WIDTH * scale) / 2;
+  const offsetY = (screenH - FIELD_HEIGHT * scale) / 2;
+
+  const bombSeconds = state.bomb
+    ? Math.ceil(state.bomb.remainingMs / 1000)
+    : null;
+
   return (
-    <section style={{ display: "grid", gap: 8 }}>
-      <div>
-        <strong>Match in Lobby:</strong> {state.lobbyId}
-      </div>
-      <div>
-        <strong>Restzeit:</strong> {secondsLeft} s
-      </div>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#111",
+        overflow: "hidden",
+      }}
+    >
+      {/* Match-Timer oben links */}
       <div
         style={{
-          position: "relative",
-          width,
-          height,
-          border: "2px solid #333",
+          position: "absolute",
+          top: 20,
+          left: 20,
+          fontSize: 24,
+          color: "white",
+          fontWeight: "bold",
+          zIndex: 10,
+        }}
+      >
+        Zeit: {secondsLeft}s
+      </div>
+
+      {/* Spielfeld */}
+      <div
+        style={{
+          position: "absolute",
+          width: FIELD_WIDTH * scale,
+          height: FIELD_HEIGHT * scale,
+          left: offsetX,
+          top: offsetY,
           background: "#111",
         }}
       >
-        {state.players.map((p) => (
-          <div
-            key={p.id}
-            title={p.nickname}
-            style={{
-              position: "absolute",
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: p.id === socket.id ? "#0f0" : "#f00",
-              transform: "translate(-50%, -50%)",
-              left: p.x,
-              top: p.y,
-            }}
-          />
-        ))}
+        {state.players.map((p) => {
+          const isMe = p.id === socket.id;
+          const isBombHolder = state.bomb?.holderId === p.id;
+
+          const x = p.x * scale;
+          const y = p.y * scale;
+
+          return (
+            <React.Fragment key={p.id}>
+              {/* Punkt */}
+              <div
+                style={{
+                  position: "absolute",
+                  width: 16 * scale,
+                  height: 16 * scale,
+                  borderRadius: "50%",
+                  background: isBombHolder ? "#ff0" : isMe ? "#0f0" : "#f00",
+                  transform: "translate(-50%, -50%)",
+                  left: x,
+                  top: y,
+                }}
+                title={p.nickname}
+              />
+              {/* Timer auf der Bombe */}
+              {isBombHolder && bombSeconds !== null && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: x,
+                    top: y,
+                    transform: "translate(-50%, -50%)",
+                    color: "#000",
+                    fontSize: 10 * scale,
+                    fontWeight: "bold",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {bombSeconds}
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
-      <div>Bewege dich mit den Pfeiltasten.</div>
-    </section>
+    </div>
   );
 }
