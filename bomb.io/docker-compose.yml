@@ -4,17 +4,19 @@ services:
   api:
     build: ./server
     container_name: bombio-api
-    environment:
-      NODE_ENV: production
-    ports:
-      - "3001:3001"   # Host:3001 -> Container:3001
-    # optional: restart: unless-stopped
+    expose:
+      - "3001"
+    networks:
+      - web   # <- HIER
 
   client:
     build: ./client
     container_name: bombio-client
-    ports:
-      - "3000:80"     # Host:3000 -> nginx im Container
-    depends_on:
-      - api
-    # optional: restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - web   # <- HIER
+
+networks:
+  web:
+    external: true
