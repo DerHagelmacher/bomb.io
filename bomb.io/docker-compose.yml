@@ -6,30 +6,15 @@ services:
     container_name: bombio-api
     environment:
       NODE_ENV: production
-    expose:
-      - "3001"
-    # wenn du Logs etc willst, kannst du spaeter Volumes hinzufuegen
+    ports:
+      - "3001:3001"   # Host:3001 -> Container:3001
+    # optional: restart: unless-stopped
 
   client:
     build: ./client
     container_name: bombio-client
-    expose:
-      - "80"
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: bombio-caddy
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - "3000:80"     # Host:3000 -> nginx im Container
     depends_on:
       - api
-      - client
-
-volumes:
-  caddy_data:
-  caddy_config:
+    # optional: restart: unless-stopped

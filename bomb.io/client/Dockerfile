@@ -3,18 +3,18 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Nur package-Dateien zuerst (Caching)
+# 1. Nur package-Dateien fuer Cache
 COPY package*.json ./
 RUN npm ci
 
-# Alle TS-Konfigs kopieren
+# 2. TS-Konfiguration & Build-Dateien
 COPY tsconfig*.json ./
 COPY vite.config.* ./
 COPY index.html ./
 COPY src ./src
 COPY public ./public
 
-# Build ausfuehren
+# 3. Build
 RUN npm run build
 
 # --- Runtime-Stage (nginx) ---

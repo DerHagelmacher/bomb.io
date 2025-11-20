@@ -33,6 +33,12 @@ const MATCH_DURATION_MS = 2 * 60 * 1000;
 const lobbies = new Map<string, Lobby>();
 const lobbyIntervals = new Map<string, NodeJS.Timeout>();
 
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://bombio.notascam.ch",
+];
 /* ---------- Helfer ---------- */
 function makeLobbyId(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -96,9 +102,16 @@ app.use(express.json());
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const server = http.createServer(app);
-app.use(cors({ origin: "*" }));
+app.use(
+  cors({
+    origin: allowedOrigins,
+  })
+);
+
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: allowedOrigins,
+  },
 });
 
 /* ---------- Socket Events ---------- */
