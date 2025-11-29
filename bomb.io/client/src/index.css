@@ -1,68 +1,74 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  /* Grundfarben im WidgetWheel-Stil */
+  --bg-main: #040713;
+  --bg-panel: #070b1c;
+  --bg-panel-soft: #0b1024;
+
+  --neon-cyan: #00f5ff;
+  --neon-cyan-soft: #4bfbff;
+  --neon-magenta: #ff3cf9;
+  --neon-orange: #ff8a2a;
+  --neon-yellow: #ffe83b;
+  --neon-border: #00f5ff;
+
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  line-height: 1.4;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
+  color: var(--text-main);
+  background-color: #000;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background:
+    radial-gradient(circle at top, #101b3c 0, #050814 40%, #000 90%),
+    radial-gradient(circle at 10% 80%, rgba(0, 245, 255, 0.15) 0, transparent 55%),
+    radial-gradient(circle at 90% 20%, rgba(255, 138, 42, 0.18) 0, transparent 55%);
+  color: var(--text-main);
+  overflow-y: auto;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+#root {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 32px 16px;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+@media (min-width: 960px) {
+  #root {
+    padding: 40px 32px;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Motion reduzierter Modus */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

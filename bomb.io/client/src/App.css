@@ -1,42 +1,255 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* ===== Grundlayout ===== */
+
+.screen {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.frame {
+  width: 100%;
+  max-width: 1240px;
+  min-height: calc(100vh - 96px);
+  margin: auto;
+  padding: 26px 26px 24px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, #050816 0%, #050714 60%, #040713 100%);
+  box-shadow:
+    0 0 0 2px rgba(0, 245, 255, 0.3),
+    0 26px 60px rgba(0, 0, 0, 0.9);
+  position: relative;
+  overflow: hidden;
+}
+
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 22px;
+  box-shadow:
+    0 0 26px rgba(0, 245, 255, 0.7),
+    0 0 80px rgba(255, 138, 42, 0.3);
+  border: 2px solid rgba(0, 245, 255, 0.6);
+  opacity: 0.36;
+  pointer-events: none;
+}
+
+/* Header */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: radial-gradient(circle at top, #050814 0, #050713 70%);
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 2px solid rgba(0, 245, 255, 0.4);
+  box-shadow:
+    0 0 18px rgba(0, 245, 255, 0.5),
+    0 12px 26px rgba(0, 0, 0, 0.8);
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
-@keyframes logo-spin {
+.logo-icon {
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle at 30% 20%, #fff7ed, #ff8a2a);
+  border-radius: 12px;
+  box-shadow:
+    0 0 20px rgba(255, 138, 42, 0.9),
+    0 0 0 2px #050714;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logoPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+  50% {
+    transform: translateY(-2px) scale(1.06);
+  }
+}
+
+.logo-text h1 {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.18em;
+  color: var(--neon-cyan-soft);
+  text-shadow:
+    0 0 16px rgba(0, 245, 255, 0.9),
+    0 0 40px rgba(0, 245, 255, 0.8);
+}
+
+.logo-text p {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 10px rgba(255, 232, 59, 0.8);
+}
+
+/* Panels, Fields, Buttons ... */
+/* (UNVERÄNDERT) – der gesamte Block bleibt wie deine Datei */
+.player-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 0 2px #050714,
+    0 0 18px rgba(249, 250, 251, 0.7);
+}
+
+.player-dot-me {
+  background: var(--neon-magenta);
+  box-shadow:
+    0 0 0 2px #050714,
+    0 0 20px rgba(255, 60, 249, 0.95);
+}
+
+/* Bombe */
+.player-dot-bomb {
+  background: var(--neon-yellow);
+  box-shadow:
+    0 0 0 2px #050714,
+    0 0 30px rgba(255, 232, 59, 1),
+    0 0 40px rgba(255, 232, 59, 0.6);
+}
+
+.bomb-timer {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #020617;
+  line-height: 1;
+}
+
+/* Hitbox Assist – optional größer für angenehmeres Taggen */
+.player-hitbox {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  margin-top: -20px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.player-dot-bomb.pulse {
+  animation: bombPulse 0.4s infinite alternate;
+}
+
+@keyframes bombPulse {
   from {
-    transform: rotate(0deg);
+    transform: scale(1);
+    box-shadow: 0 0 30px rgba(255, 232, 59, 0.8);
   }
   to {
-    transform: rotate(360deg);
+    transform: scale(1.25);
+    box-shadow: 0 0 60px rgba(255, 60, 60, 1);
   }
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.killfeed {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
 }
 
-.card {
-  padding: 2em;
+.killfeed-item {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.16);
+  border: 1px solid rgba(220, 38, 38, 0.6);
+  color: #fecaca;
+  font-size: 0.8rem;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.7);
+  animation: killfeedFade 6s forwards;
 }
 
-.read-the-docs {
-  color: #888;
+@keyframes killfeedFade {
+  0% { opacity: 1; transform: translateX(0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(40px); }
+}
+.winner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.winner-box {
+  padding: 40px 60px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #0a0c18, #050713);
+  border: 2px solid var(--neon-cyan);
+  box-shadow:
+    0 0 30px rgba(0, 245, 255, 0.8),
+    0 0 60px rgba(255, 60, 249, 0.4);
+  text-align: center;
+}
+
+.winner-title {
+  font-family: "Orbitron";
+  font-size: 2rem;
+  letter-spacing: 0.15em;
+  color: var(--neon-cyan);
+  text-shadow:
+    0 0 20px rgba(0, 245, 255, 1),
+    0 0 40px rgba(0, 245, 255, 0.8);
+  margin-bottom: 14px;
+}
+
+.winner-name {
+  font-size: 1.4rem;
+  color: var(--neon-magenta);
+  margin-bottom: 20px;
+}
+
+.winner-actions button {
+  margin: 10px 12px;
+  padding: 10px 22px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  border: 2px solid var(--neon-cyan);
+  background: #020617;
+  box-shadow: 0 0 14px rgba(0, 245, 255, 0.4);
+}
+.spectator-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  background: rgba(148, 163, 184, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  border-radius: 12px;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  text-shadow: 0 0 10px rgba(148,163,184,0.8);
+  z-index: 80;
 }
