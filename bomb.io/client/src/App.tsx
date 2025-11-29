@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { socket } from "./socket";
 import "./App.css";
 
@@ -163,83 +163,96 @@ export default function App() {
     return killFeed.filter((item) => now - item.ts < 6000);
   }, [killFeed, matchState]);
 
-  // Bewegung
-  useEffect(() => {
-    if (!inMatch || !matchState || isSpectator) return;
+  // Refs statt state-Abhängigkeit
+const pressedKeysRef = useRef<Set<string>>(new Set());
+const lobbyIdRef = useRef<string | null>(null);
 
-    const keys = new Set<string>();
-    let lastTime = performance.now();
-    let animId: number | null = null;
+// Lobby-ID immer aktuell halten
+useEffect(() => {
+  if (matchState?.lobbyId) {
+    lobbyIdRef.current = matchState.lobbyId;
+  }
+}, [matchState?.lobbyId]);
 
-    function onKeyDown(e: KeyboardEvent) {
-      if (
-        e.key === "ArrowUp" ||
-        e.key === "ArrowDown" ||
-        e.key === "ArrowLeft" ||
-        e.key === "ArrowRight"
-      ) {
-        e.preventDefault();
-        keys.add(e.key);
+// Smooth movement loop
+useEffect(() => {
+  if (!inMatch) {
+    pressedKeysRef.current.clear();
+    return;
+  }
+
+  const keys = pressedKeysRef.current;
+
+  function onKeyDown(e: KeyboardEvent) {
+    if (
+      e.key === "ArrowUp" ||
+      e.key === "ArrowDown" ||
+      e.key === "ArrowLeft" ||
+      e.key === "ArrowRight"
+    ) {
+      e.preventDefault();
+      keys.add(e.key);
+    }
+  }
+
+  function onKeyUp(e: KeyboardEvent) {
+    if (
+      e.key === "ArrowUp" ||
+      e.key === "ArrowDown" ||
+      e.key === "ArrowLeft" ||
+      e.key === "ArrowRight"
+    ) {
+      e.preventDefault();
+      keys.delete(e.key);
+    }
+  }
+
+  let last = performance.now();
+  let frameId: number;
+
+  const loop = (now: number) => {
+    const dt = now - last;
+    last = now;
+
+    const lobbyId = lobbyIdRef.current;
+    if (lobbyId && keys.size > 0) {
+      let vx = 0;
+      let vy = 0;
+
+      if (keys.has("ArrowUp")) vy -= 1;
+      if (keys.has("ArrowDown")) vy += 1;
+      if (keys.has("ArrowLeft")) vx -= 1;
+      if (keys.has("ArrowRight")) vx += 1;
+
+      const len = Math.hypot(vx, vy);
+      if (len > 0) {
+        vx /= len;
+        vy /= len;
+
+        socket.emit("player:move", {
+          lobbyId,
+          dx: vx * MOVE_SPEED * dt,
+          dy: vy * MOVE_SPEED * dt,
+        });
       }
     }
 
-    function onKeyUp(e: KeyboardEvent) {
-      if (
-        e.key === "ArrowUp" ||
-        e.key === "ArrowDown" ||
-        e.key === "ArrowLeft" ||
-        e.key === "ArrowRight"
-      ) {
-        e.preventDefault();
-        keys.delete(e.key);
-      }
-    }
+    frameId = requestAnimationFrame(loop);
+  };
 
-    function loop(now: number) {
-      const dt = now - lastTime;
-      lastTime = now;
+  frameId = requestAnimationFrame(loop);
 
-      if (keys.size > 0 && matchState) {
-        let vx = 0;
-        let vy = 0;
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
 
-        if (keys.has("ArrowUp")) vy -= 1;
-        if (keys.has("ArrowDown")) vy += 1;
-        if (keys.has("ArrowLeft")) vx -= 1;
-        if (keys.has("ArrowRight")) vx += 1;
+  return () => {
+    window.removeEventListener("keydown", onKeyDown);
+    window.removeEventListener("keyup", onKeyUp);
+    cancelAnimationFrame(frameId);
+    keys.clear();
+  };
+}, [inMatch]);
 
-        const len = Math.hypot(vx, vy);
-        if (len > 0) {
-          vx /= len;
-          vy /= len;
-
-          const dx = vx * MOVE_SPEED * dt;
-          const dy = vy * MOVE_SPEED * dt;
-
-          socket.emit("player:move", {
-            lobbyId: matchState.lobbyId,
-            dx,
-            dy,
-          });
-        }
-      }
-
-      animId = requestAnimationFrame(loop);
-    }
-
-    lastTime = performance.now();
-    animId = requestAnimationFrame(loop);
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      if (animId) cancelAnimationFrame(animId);
-      keys.clear();
-    };
-  }, [inMatch, matchState, isSpectator]);
 
   function createLobby() {
     if (!nickname.trim()) {
