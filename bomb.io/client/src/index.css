@@ -1,5 +1,4 @@
 :root {
-  /* Grundfarben im WidgetWheel-Stil */
   --bg-main: #040713;
   --bg-panel: #070b1c;
   --bg-panel-soft: #0b1024;
@@ -65,7 +64,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Motion reduzierter Modus */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
