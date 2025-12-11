@@ -7,7 +7,8 @@
     "strict": true,
     "outDir": "dist",
     "skipLibCheck": true,
-    "verbatimModuleSyntax": false   // <— WICHTIG: hinzufügen/auf false setzen
+    "types": ["node", "jest"],
+    "verbatimModuleSyntax": false
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
