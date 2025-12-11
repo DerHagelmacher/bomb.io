@@ -38,3 +38,50 @@ test("tryTransferBomb transfers bomb when within radius", () => {
 
   expect(lobby.bombHolderId).toBe("b");
 });
+
+test("tryTransferBomb does NOT transfer bomb when players are outside radius", () => {
+  const lobby: {
+    bombHolderId: string | null;
+    players: Record<string, TPlayer>;
+  } = {
+    bombHolderId: "a",
+    players: {
+      a: { id: "a", x: 0, y: 0, alive: true },
+      b: { id: "b", x: 50, y: 0, alive: true },
+    }
+  };
+
+  tryTransferBomb(lobby, "a");
+
+  expect(lobby.bombHolderId).toBe("a");
+});
+
+test("tryTransferBomb does nothing when bomb holder is dead", () => {
+  const lobby: {
+    bombHolderId: string | null;
+    players: Record<string, TPlayer>;
+  } = {
+    bombHolderId: "a",
+    players: {
+      a: { id: "a", x: 0, y: 0, alive: false },
+      b: { id: "b", x: 5, y: 0, alive: true },
+    }
+  };
+
+  tryTransferBomb(lobby, "a");
+
+  expect(lobby.bombHolderId).toBe("a");
+});
+
+test("alivePlayers returns empty array when no players are alive", () => {
+  const lobby: { players: Record<string, TPlayer> } = {
+    players: {
+      a: { id: "a", x: 0, y: 0, alive: false },
+      b: { id: "b", x: 10, y: 0, alive: false },
+    }
+  };
+
+  const result = alivePlayers(lobby);
+
+  expect(result.length).toBe(0);
+});
