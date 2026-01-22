@@ -23,6 +23,7 @@ test("alivePlayers returns only alive players", () => {
 });
 
 test("tryTransferBomb transfers bomb when within radius", () => {
+  // Arrange
   const lobby: {
     bombHolderId: string | null;
     players: Record<string, TPlayer>;
