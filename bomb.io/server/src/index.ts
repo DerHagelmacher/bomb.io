@@ -237,15 +237,17 @@ function handleBombExplosion(
 /* ---------- Express + Socket.IO ---------- */
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));
+const allowedOrigins = ["http://localhost:5173", "https://bombio.notascam.ch"];
+
+
+
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "http://localhost:5173" },
-});
+app.use(cors({ origin: allowedOrigins }));
+const io = new Server(server, { cors: { origin: allowedOrigins } });
 
 /* ---------- Socket Events ---------- */
 
