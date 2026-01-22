@@ -4,16 +4,16 @@ services:
   api:
     build: ./server
     container_name: bombio-api
-    expose:
-      - "3001"
+    ports:
+      - "3001:3001"
     networks:
       - web   # <- HIER
 
   client:
     build: ./client
     container_name: bombio-client
-    expose:
-      - "81"
+    ports:
+      - "81:81"
     networks:
       - web   # <- HIER
 
